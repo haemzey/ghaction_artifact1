@@ -97,14 +97,45 @@ jobs:
             - name: install dependency
               run: python -m pip install -r requirements.txt
 
-            - name: App Testing
+            - name: Run Pylint
+              shell: bash
               run: |
-                  python3 -m pylint $(git ls-files '*.py') >> pylint.txt
-                  python3 -m pytest test/py_test.app --junitxml=results.xml
-                  python3 -m flake8 . $(git ls-files '*.py') >> flake8.txt
-                  python3 -m bandit -r . $(git ls-files '*.py') >> bandit.txt
-                  python3 -m junittest unit_test.py >> unittest.txt
-                  python3 -m build 
+                python3 -m pylint \
+                $(git ls-files '*.py') \
+                | tee pylint.txt
+
+            - name: Run Pytest
+              shell: bash
+              run: |
+                python3 -m pytest \
+                test/py_test.py \
+                --junitxml=results.xml
+
+            - name: Run Flake8
+              shell: bash
+              run: |
+                python3 -m flake8 \
+                $(git ls-files '*.py') \
+                | tee flake8.txt
+
+            - name: Run Bandit
+              shell: bash
+              run: |
+                python3 -m bandit \
+                $(git ls-files '*.py') \
+                | tee bandit.txt
+
+            - name: Run unittest
+              shell: bash
+              run: |
+                python3 -m unittest \
+                unit_test.py \
+                | tee unittest.txt
+
+            - name: Build Python package
+              shell: bash
+              run: |
+                python3 -m build 
 
             - name: upload PYLINT artifact
               uses: actions/upload-artifact@v7
