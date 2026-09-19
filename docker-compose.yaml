@@ -1,0 +1,54 @@
+services:
+  db:
+    image: mysql:8.4
+    build:
+      context: .
+    container_name: mydbsql
+    environment:
+      MYSQL_NAME: restuarent-management
+      MYSQL_HOST: root
+      MYSQL_USER: admin
+      MYSQL_PORT: 3306
+      MYSQL_PASSWORD: root 
+    networks:
+      - mynetwork
+    ports:
+      - "3306:3306"
+    volumes:
+      - myvolume:/myapp/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  server:
+    image: python:3.12
+    build:
+      context: .
+    container_name: myflaskserver
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mynetwork
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  myvolume:
+
+  
+    
