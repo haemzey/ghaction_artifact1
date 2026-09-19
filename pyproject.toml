@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ghaction-artifact1"
+version = "0.1.0"
+description = "Flask application for GitHub Actions CI/CD practice"
+requires-python = ">=3.12"
+dependencies = [
+    "Flask",
+    "gunicorn"
+]
