@@ -1,0 +1,404 @@
+name: FLASK MYSQL CI
+on:
+    workflow_dispatch:
+        inputs:
+          
+          environments:
+            description: deployment
+            required: true
+            default: dev
+            type: choice
+            options:
+                - dev
+                - qa
+                - prod
+
+          app_tests:
+            description: APP TESTS
+            required: true
+            type: boolean
+            default: true
+
+          flask_tests:
+            description: FLASK TESTS
+            required: true
+            type: boolean
+            default: true
+
+          flask_images:
+            description: DOCKER IMAGE
+            required: true
+            type: boolean
+            default: true
+
+          security_scans:
+            description: SECURITY SCAN
+            required: true
+            type: boolean
+            default: true
+
+          smoke_tests:
+            description: SMOKE TEST
+            required: true
+            type: boolean
+            default: true
+
+    pull_request:
+      types:
+        - "opened"
+        - "reopened"
+        - "synchronize"
+        - "ready_for_review"
+        - "closed"
+
+      branches:
+        - main 
+
+    push:
+      branches:
+        - main
+
+permissions:
+    contents: read
+    pull-requests: read
+
+env:
+    FLASK_NAME: myflaskserver
+    MYSQL_NAME: mydbsql
+    PYTHON_VERSION: 3.12
+
+jobs:
+    flask_test:
+        runs-on: ubuntu-latest
+        if: ${{ inputs.environments == 'dev' && inputs.app_tests == true }}
+        steps:
+            - name: calling inputs
+              run: |
+                echo "${{ inputs.environments }}"
+                echo "${{ inputs.app_tests }}"
+
+            - name: check repo
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+
+            - name: git leaks
+              uses: gitleaks/gitleaks-action@v3
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: python setups
+              uses: actions/setup-python@v7
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  cache: "pip"
+                  cache-dependency-path: ./requirements.txt
+
+            - name: install dependency
+              run: python -m pip install -r requirements.txt
+
+            - name: App Testing
+              run: |
+                  python -m pylint $(git ls-files '*.py') >> pylint.txt
+                  python -m pytest test/py_test.app --junitxml=results.xml
+                  python -m flake8 . $(git ls-files '*.py') >> flake8.txt
+                  python -m bandit -r . $(git ls-files '*.py') >> bandit.txt
+                  python -m junittest unit_test.py >> unittest.txt
+                  python -m build 
+
+            - name: upload PYLINT artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  path: pylint.txt
+
+            - name: upload PYTEST artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  path: results.xml
+
+            - name: upload FLAKE8 artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  path: flake8.txt
+
+            - name: upload BANDIT artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  path: bandit.txt 
+
+            - name: upload uniitest artifact
+              uses: actions/upload-artifact@v7
+              with:
+                path: unittest.txt 
+
+            - name: upload BUILD artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  path: dist/
+
+    docker_build:
+      needs: flask_test 
+      runs-on: ubuntu-latest
+      if: ${{ inputs.environments == 'dev' && inputs.flask_images == true }}
+      steps:
+        - name: calling inputs
+          run: |
+              echo "${{ inputs.environments }}"
+              echo "${{ inputs.flask_images }}"
+
+        - name: check repo 
+          uses: actions/checkout@v7
+          with:
+            fetch-depth: 0
+
+        - name: Image Tag
+          id: tag
+          run: echo "IMAGE_TAG=v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        - run: echo "tag is; ${{steps.tag.outputs.IMAGE_TAG}}"
+          
+        - name: Flask Image
+          id: image_1
+          run: echo "FLASK_IMAGE=${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:${{ steps.tag.outputs.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+        - run: echo "Flask Image; ${{ steps.image_1.outputs.FLASK_IMAGE }}"
+          
+        - name: MYSQL Image
+          id: image_2
+          run: echo "MYSQL_IMAGE=${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:${{ steps.tag.outputs.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+        - run: echo "MYSQL Image; ${{ steps.image_2.outputs.MYSQL_IMAGE }}"
+
+        - name: flask image build
+          uses: docker/build-push-action@v7
+          with:
+            context: ./Dockerfile.flask
+            push: false
+            tags: ${{ steps.image_1.outputs.FLASK_IMAGE }}
+            load: true
+
+        - name: mysql image build
+          uses: docker/build-push-action@v7
+          with:
+            context: ./Dockerfile.flask
+            push: false
+            tags: ${{ steps.image_2.outputs.MYSQL_IMAGE }}
+            load: true
+
+        - name: upload flask artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: ${{ steps.image_1.outputs.FLASK_IMAGE }}
+
+        - name: upload mysql artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: ${{ steps.image_2.outputs.MYSQL_IMAGE }}
+
+      outputs:
+        FLASK_IMAGE: ${{ steps.image_1.outputs.FLASK_IMAGE }}
+        MYSQL_IMAGE: ${{ steps.image_2.outputs.MYSQL_IMAGE }}
+
+    docker_security_scan:
+      needs: docker_build
+      runs-on: ubuntu-latest
+      if: ${{ inputs.environments == 'qa' && inputs.security_scans == true && needs.docker_build.result == 'success' }}
+      steps:
+        - name: calling inputs
+          run: |
+            echo "${{ inputs.environments }}"
+            echo "${{ inputs.security_scans }}"
+
+        - name: download flask artifact
+          uses: actions/download-artifact@v7
+          with:
+            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+
+        - name: download mysql artifact
+          uses: actions/download-artifact@v7
+          with:
+            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }} 
+
+        - name: flask image secrets scan
+          uses: aquasecurity/trivy-action@v0.36.0
+          with:
+            scan-type: fs
+            scan-ref: ./Dockerfile.flask
+            format: "table"
+            vuln-type: "os,library"
+            scanners: "secret"
+            ignore-unfixed: "true"
+            severity: "CRITICAL"
+            exit-code: "1"
+            output: flask_secrets.txt
+
+        - name: mysql image secrets scan
+          uses: aquasecurity/trivy-action@v0.36.0
+          with:
+            scan-type: fs
+            scan-ref: ./Dockerfile.database
+            format: "table"
+            vuln-type: "os,library"
+            scanners: "secret"
+            ignore-unfixed: "true"
+            severity: "CRITICAL"
+            exit-code: 1
+            output: mysql_secrets.txt
+
+        - name: flask image vuln scan
+          uses: aquasecurity/trivy-action@v0.36.0
+          with:
+            image-ref: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+            format: "table"
+            vuln-type: "os,library"
+            scanners: "vuln"
+            ignore-unfixed: "true"
+            severity: "CRITICAL"
+            exit-code: 1
+            output: flask_vuln.txt
+
+        - name: mysql image vuln scan
+          uses: aquasecurity/trivy-action@v0.36.0
+          with:
+            image-ref: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+            format: "table"
+            vuln-type: "os,library"
+            scanners: "vuln"
+            ignore-unfixed: "true"
+            severity: "CRITICAL"
+            exit-code: 1
+            output: mysql_vuln.txt
+
+        - name: flask secret artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: flask_secrets.txt
+          
+        - name: mysql secret artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: mysql_secrets.txt
+
+        - name: flask vuln artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: flask_vuln.txt
+
+        - name: mysq vuln artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: mysq_vuln.txt
+
+    deployment:
+      needs:
+        - docker_build
+        - docker_security_scan
+      runs-on: ubuntu-latest
+      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && (needs.docker_build.result == 'success' && needs.docker_security_scan == 'success') }}
+      steps:
+        - name: calling inputs
+          run: |
+            echo "${{ inputs.environments }}"
+            echo "${{ inputs.smoke_tests }}"
+
+        - name: download flask image artifact
+          uses: actions/download-artifact@v7
+          with:
+            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+
+        - name: download mysql image artifact
+          uses: actions/download-artifact@v7
+          with:
+            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }} 
+
+        - name: docker network
+          run: docker network create --driver bridge mynetwork
+          
+        - name: docker volume 
+          run: docker volume create myvolume 
+
+        - name: flask container
+          run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+
+        - run: sleep 10
+        
+        - name: mysql container 
+          run: docker run -d -p 3306:3306 --network mynetwork -v myvolume:/db/schema --name mydbsql ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+
+        - run: sleep 10
+          
+        - name: flask image smoke test
+          run: curl --fail --retry-10 http://localhost:5000/health >> flask_smoke_test.txt
+
+        - name: mysql image smoke test
+          env:
+            MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          run: |
+              docker exec mydbsql \
+              mysqladmin ping \
+              -h 127.0.0.1 \
+              -u root \
+              -p"$MYSQL_ROOT_PASSWORD" \
+              --silent >> mysql_smoke_test.txt
+
+        - name: flask container fails
+          if: ${{ failure() }}
+          run: docker logs myflaskserver >> flask_faillogs.txt
+
+        - name: mysql container fails
+          if: ${{ failure() }}
+          run: docker logs mydbsql >> mysql_faillogs.txt
+
+        - name: remove containers
+          if: ${{ always() }}
+          run: |
+            docker rm -f mysever
+            docker rm -f mydbsql
+            docker network rm mynetwork
+
+        - name: upload flask smoke test result
+          uses: actions/upload-artifact@v7
+          with:
+            path: flask_smoke_test.txt
+
+        - name: upload mysql smoke test result
+          uses: actions/upload-artifact@v7
+          with:
+            path: mysql_smoke_test.txt 
+
+        - name: upload flask container logs
+          uses: actions/upload-artifact@v7
+          with:
+            path: flask_faillogs.txt
+
+        - name: upload mysql container logs
+          uses: actions/upload-artifact@v7
+          with:
+            path: mysql_faillogs.txt
+
+        - name: docker login
+          uses: docker/login-action@v4
+          with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN }}
+
+        - name: flask image publish on dockerhub
+          run: docker push ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+
+        - name: mysql image publish on dockerhub
+          run: docker push ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+
+    production:
+      needs:
+        - docker_build
+        - docker_security_scan 
+        - deployment
+      runs-on: ubuntu-latest
+      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && (needs.docker_build.result == 'success' && needs.docker_security_scan == 'success') }}
+      steps:
+        - name: re-use workflow call
+          uses: ./.github/workflows/workflow_call_ci.yaml
+          with:
+            application_name: flask mysql app
+            docker_compose: true
+            replicas: true
+            
+        
+      
