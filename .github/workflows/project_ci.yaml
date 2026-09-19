@@ -99,12 +99,12 @@ jobs:
 
             - name: App Testing
               run: |
-                  python -m pylint $(git ls-files '*.py') >> pylint.txt
-                  python -m pytest test/py_test.app --junitxml=results.xml
-                  python -m flake8 . $(git ls-files '*.py') >> flake8.txt
-                  python -m bandit -r . $(git ls-files '*.py') >> bandit.txt
-                  python -m junittest unit_test.py >> unittest.txt
-                  python -m build 
+                  python3 -m pylint $(git ls-files '*.py') >> pylint.txt
+                  python3 -m pytest test/py_test.app --junitxml=results.xml
+                  python3 -m flake8 . $(git ls-files '*.py') >> flake8.txt
+                  python3 -m bandit -r . $(git ls-files '*.py') >> bandit.txt
+                  python3 -m junittest unit_test.py >> unittest.txt
+                  python3 -m build 
 
             - name: upload PYLINT artifact
               uses: actions/upload-artifact@v7
