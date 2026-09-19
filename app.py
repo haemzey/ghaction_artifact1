@@ -25,6 +25,6 @@ if __name__ == "__main__":
     app.logger.info("Starting Flask application")
 
     app.run(
-        host="0.0.0.0",
+        host="0.0.0.0",  # nosec B104 - required for Docker networking
         port=int(os.getenv("PORT", "5000")),
     )

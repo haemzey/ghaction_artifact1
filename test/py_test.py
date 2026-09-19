@@ -14,7 +14,7 @@ def client():
 def test_home(client):
     response = client.get("/")
 
-    assert response.status_code == 200
+    assert response.status_code == 200  # nosec B101
 
     data = response.get_json()
 
@@ -26,7 +26,7 @@ def test_home(client):
 def test_health(client):
     response = client.get("/health")
 
-    assert response.status_code == 200
+    assert response.status_code == 200  # nosec B101
 
     data = response.get_json()
 
