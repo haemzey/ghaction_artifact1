@@ -1,0 +1,8 @@
+FROM mysql:8.4
+
+RUN groupadd --system --gid 1001 appuser \
+    && useradd --system --uid 1001 --gid appuser appuser
+
+WORKDIR /myapp
+
+RUN --chown appuser:appuser --chmod 0444 /docker-entrypoint-initdb.d/
