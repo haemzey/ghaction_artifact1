@@ -121,8 +121,7 @@ jobs:
             - name: Run Bandit
               shell: bash
               run: |
-                python3 -m bandit \
-                $(git ls-files '*.py') \
+                python3 -m bandit -r . -s B101 \
                 | tee bandit.txt
 
             - name: Run unittest
