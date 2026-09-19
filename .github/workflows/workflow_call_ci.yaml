@@ -1,0 +1,98 @@
+name: Reuse Workflow Call
+on:
+    workflow_call:
+        inputs:
+          application_name:
+            description: name of app
+            required: true
+            type: string
+
+          docker_compose:
+            description: docker-compose running testing
+            required: true
+            type: boolean
+            
+          replicas:
+            description: copyies of workflow
+            required: true
+            type: number
+
+permissions:
+    contents: read
+
+jobs:
+    production:
+        runs-on: ubuntu-latest
+        steps:
+        - name: calling inputs
+          run: |
+            echo "${{ inputs.application_name }}"
+            echo "${{ inputs.docker_compose }}"
+            echo "${{ inputs.replicas }}"
+
+        - name: check repo
+          uses: actions/checkout@v7
+          with:
+            fetch-depth: 0
+
+        - name: download flask image artifact
+          uses: actions/download-artifact@v7
+          with:
+            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+
+        - name: download mysql image artifact
+          uses: actions/download-artifact@v7
+          with:
+            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+ 
+        - name: Set up Docker Compose
+          if: ${{ inputs.docker_compose == 'true' }}
+          uses: docker/setup-compose-action@v2
+          with:
+            version: latest
+            cache-binary: true
+
+        - name: docker-compose setup
+          if: ${{ inputs.docker_compose == 'true' }}
+          uses: hoverkraft-tech/compose-action@b659c744ee9bed25aea2307c017ad849bd104433
+          with:
+            compose-file: "./docker-compose.yaml"
+            services: |
+                db
+                server
+
+        - name: Check services healthiness
+          if: ${{ inputs.docker_compose == 'true' }}
+          uses: thegabriele97/dockercompose-health-action@main
+          with:
+            filename: 'docker-compose.test.yml'
+            timeout: '60'
+            workdir: './'
+
+        - name: running test on flask container
+          if: ${{ inputs.docker_compose == 'true' }}
+          uses: adambirds/docker-compose-action@v1.5.0
+          with:
+            compose-file: "./docker-compose.yml"
+            test-container: "myflaskserver"
+            test-command: "pip pytest > flask_cont_test.txt"
+        
+        - name: running test on mysql container
+          if: ${{ inputs.docker_compose == 'true' }}
+          uses: adambirds/docker-compose-action@v1.5.0
+          with:
+            compose-file: "./docker-compose.yml"
+            test-container: "mydbsql"
+            test-command: "npm test > mysql_cont_test.txt"
+
+        - name: upload flask artifact
+          uses: actions/upload-artifact@v7
+          with:
+              path: flask_cont_test.txt
+
+        - name: upload mysql artifact
+          uses: actions/upload-artifact@v7
+          with:
+              path: mysql_cont_test.txt
+
+        
