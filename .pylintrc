@@ -22,7 +22,7 @@ max-line-length=100
 
 [REPORTS]
 
-score=7
+score=no
 
 [REFACTORING]
 
