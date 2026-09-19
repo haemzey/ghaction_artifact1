@@ -10,18 +10,19 @@ class TestApp(unittest.TestCase):
 
     def test_home(self):
         response = self.client.get("/")
-
         self.assertEqual(response.status_code, 200)
 
         data = response.get_json()
 
-        self.assertEqual(data["message"], "Welcome to My Page, Greetings by Hamza")
+        self.assertEqual(
+            data["message"],
+            "Welcome to My Page, Greetings by Hamza",
+        )
         self.assertEqual(data["platform"], "GitHub Actions")
         self.assertEqual(data["runtime"], "Docker + Flask")
 
     def test_health(self):
         response = self.client.get("/health")
-
         self.assertEqual(response.status_code, 200)
 
         data = response.get_json()
