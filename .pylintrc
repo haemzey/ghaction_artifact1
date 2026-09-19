@@ -1,0 +1,29 @@
+[MASTER]
+
+ignore=
+    .git,
+    .github,
+    .venv,
+    venv,
+    __pycache__
+
+[MESSAGES CONTROL]
+
+disable=
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
+    missing-final-newline,
+    redefined-outer-name
+
+[FORMAT]
+
+max-line-length=100
+
+[REPORTS]
+
+score=7
+
+[REFACTORING]
+
+max-nested-blocks=5
