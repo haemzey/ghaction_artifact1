@@ -137,35 +137,41 @@ jobs:
                   python3 -m pip install --upgrade pip
                   python3 -m pip install build
                   python3 -m build 
-                  
+
             - name: upload PYLINT artifact
               uses: actions/upload-artifact@v7
               with:
+                  name: pylint-results
                   path: pylint.txt
 
             - name: upload PYTEST artifact
               uses: actions/upload-artifact@v7
               with:
+                  name: pytest-results
                   path: results.xml
 
             - name: upload FLAKE8 artifact
               uses: actions/upload-artifact@v7
               with:
+                  name: flake8-results
                   path: flake8.txt
 
             - name: upload BANDIT artifact
               uses: actions/upload-artifact@v7
               with:
+                  name: bandit-results
                   path: bandit.txt 
 
             - name: upload uniitest artifact
               uses: actions/upload-artifact@v7
               with:
+                name: unittest-results
                 path: unittest.txt 
 
             - name: upload BUILD artifact
               uses: actions/upload-artifact@v7
               with:
+                  name: python-build-results
                   path: dist/
 
     docker_build:
