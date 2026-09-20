@@ -1,0 +1,130 @@
+name: FLASK MYSQL CI
+on:
+  workflow_dispatch:
+    inputs:
+      smoke_tests:
+        description: SMOKE TEST
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  FLASK_NAME: myflaskserver
+  MYSQL_NAME: mydbsql
+  PYTHON_VERSION: 3.12
+
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: calling inputs
+        run: echo "${{ inputs.smoke_tests }}"
+
+      - name: docker login 
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN}}
+
+      - name: docker pull images
+        run: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+          
+        
+      - name: docker network
+        run: docker network create --driver bridge mynetwork
+
+      - name: docker volume
+        run: docker volume create myvolume
+
+      - name: flask container
+        run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+
+      - run: sleep 10
+      - name: flask image smoke test
+        run: curl --fail --retry 10 http://localhost:5000/health >> flask_smoke_test.txt
+
+      - name: MySQL container
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+        run: |
+          docker run -d \
+          -p 3306:3306 \
+          --network mynetwork \
+          --name mydbsql \
+          -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+          ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+
+      - name: Wait for MySQL
+        run: sleep 10
+
+      - name: Debug MySQL container
+        run: |
+          docker ps -a
+          docker inspect mydbsql \
+          --format='Status={{.State.Status}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}'
+          docker logs mydbsql
+
+      - name: MySQL smoke test
+        env:
+          MYSQL_ROOT_USER: ${{ secrets.MYSQL_ROOT_USER }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+        run: |
+          docker exec mydbsql \
+          mysqladmin ping \
+          -h 127.0.0.1 \
+          -u"$MYSQL_ROOT_USER" \
+          -p"$MYSQL_ROOT_PASSWORD"
+
+      - name: flask container fails
+        if: ${{ failure() }}
+        run: docker logs myflaskserver >> flask_faillogs.txt
+
+      - name: mysql container fails
+        if: ${{ failure() }}
+        run: docker logs mydbsql >> mysql_faillogs.txt
+
+      - name: Remove containers and network
+        if: ${{ always() }}
+        run: |
+          docker rm -f myflaskserver 2>/dev/null || true
+          docker rm -f mydbsql 2>/dev/null || true
+          docker network rm mynetwork 2>/dev/null || true
+
+      - name: upload flask smoke test result
+        uses: actions/upload-artifact@v7
+        with:
+          name: flask_smoke_test
+          path: flask_smoke_test.txt
+
+      - name: upload mysql smoke test result
+        uses: actions/upload-artifact@v7
+        with:
+          name: mysql_smoke_test
+          path: mysql_smoke_test.txt
+
+      - name: upload flask container logs
+        uses: actions/upload-artifact@v7
+        with:
+          name: flask_faillogs
+          path: flask_faillogs.txt
+
+      - name: upload mysql container logs
+        uses: actions/upload-artifact@v7
+        with:
+          name: mysql_faillogs
+          path: mysql_faillogs.txt
+
+  production:
+    needs:
+      - deployment
+    uses: ./.github/workflows/workflow_call_ci.yaml
+    with:
+      application_name: flask mysql app
+      docker_compose: true
+      replicas: true
