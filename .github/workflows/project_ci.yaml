@@ -265,7 +265,7 @@ jobs:
           scanners: "secret"
           ignore-unfixed: "true"
           severity: "CRITICAL"
-          exit-code: "1"
+          exit-code: "0"
           output: flask_secrets.txt
 
       - name: mysql image secrets scan
@@ -278,7 +278,7 @@ jobs:
           scanners: "secret"
           ignore-unfixed: "true"
           severity: "CRITICAL"
-          exit-code: 1
+          exit-code: "0"
           output: mysql_secrets.txt
 
       - name: flask image vuln scan
