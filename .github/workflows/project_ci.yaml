@@ -461,13 +461,11 @@ jobs:
 
   production:
     needs:
-    #  - docker_build
-    #  - docker_security_scan
       - deployment
     runs-on: ubuntu-latest
     if: ${{ inputs.environments == 'prod' }}
     steps:
-      - name: re-use workflow call
+      - name: Reuse Workflow Call
         uses: ./.github/workflows/workflow_call_ci.yaml
         with:
           application_name: flask mysql app
