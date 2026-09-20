@@ -166,7 +166,7 @@ jobs:
                   path: dist/
     docker_build:
       runs-on: ubuntu-latest
-      if: ${{ (inputs.environments == 'dev' || inputs.environments == 'qa' || inputs.environments == 'prod') && inputs.flask_images == true }}
+      if: ${{ (inputs.environments == 'dev' || inputs.environments == 'qa' || inputs.environments == 'prod') && (inputs.flask_images == true && inputs.mysql_images == true) }}
       outputs:
         flask_image: ${{ steps.image_names.outputs.FLASK_IMAGE }}
         mysql_image: ${{ steps.image_names.outputs.MYSQL_IMAGE }}
@@ -458,7 +458,7 @@ jobs:
         - docker_security_scan 
         - deployment
       runs-on: ubuntu-latest
-      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && needs.docker_build.result == 'success' }}
+      if: ${{ inputs.environments == 'prod' && needs.docker_build.result == 'success' }}
       steps:
         - name: re-use workflow call
           uses: ./.github/workflows/workflow_call_ci.yaml
