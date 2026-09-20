@@ -70,7 +70,7 @@ env:
 jobs:
     flask_test:
         runs-on: ubuntu-latest
-        if: ${{ inputs.environments == 'dev' && inputs.app_tests == true }}
+        if: ${{ (inputs.environments == 'dev' || inputs.environments == 'qa' || inputs.environments == 'prod') && inputs.app_tests == true }}
         steps:
             - name: calling inputs
               run: |
@@ -239,7 +239,7 @@ jobs:
     docker_security_scan:
       needs: docker_build
       runs-on: ubuntu-latest
-      if: ${{ inputs.environments == 'qa' && inputs.security_scans == true && needs.docker_build.result == 'success' }}
+      if: ${{ (inputs.environments == 'qa' || inputs.environments == 'prod') && inputs.security_scans == true && needs.docker_build.result == 'success' }}
       steps:
         - name: calling inputs
           run: |
