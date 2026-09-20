@@ -331,7 +331,7 @@ jobs:
         - docker_build
         - docker_security_scan
       runs-on: ubuntu-latest
-      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && (needs.docker_build.result == 'success' && needs.docker_security_scan == 'success') }}
+      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && needs.docker_build.result == 'success' }}
       steps:
         - name: calling inputs
           run: |
@@ -419,11 +419,7 @@ jobs:
             username: ${{ secrets.DOCKER_USERNAME }}
             password: ${{ secrets.DOCKER_TOKEN }}
 
-        - name: flask image publish on dockerhub
-          run: docker push ${{ needs.docker_build.outputs.FLASK_IMAGE }}
-
-        - name: mysql image publish on dockerhub
-          run: docker push ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+        
 
     production:
       needs:
@@ -431,7 +427,7 @@ jobs:
         - docker_security_scan 
         - deployment
       runs-on: ubuntu-latest
-      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && (needs.docker_build.result == 'success' && needs.docker_security_scan == 'success') }}
+      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && needs.docker_build.result == 'success' }}
       steps:
         - name: re-use workflow call
           uses: ./.github/workflows/workflow_call_ci.yaml
