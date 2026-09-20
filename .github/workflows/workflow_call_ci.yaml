@@ -38,11 +38,13 @@ jobs:
         - name: download flask image artifact
           uses: actions/download-artifact@v7
           with:
+            name: flask-image
             path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
 
         - name: download mysql image artifact
           uses: actions/download-artifact@v7
           with:
+            name: mysql-image
             path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
  
         - name: Set up Docker Compose
