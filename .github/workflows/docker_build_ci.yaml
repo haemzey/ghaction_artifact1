@@ -10,12 +10,7 @@ env:
 
 jobs:
     docker-build:
-<<<<<<< HEAD
-        runs-on: ubunru-latest
-        if: ${{ inputs.environments == 'dev' && inputs.flask_images == true && inputs.mysql_images == true }}
-=======
         runs-on: ubuntu-latest
->>>>>>> 665d210 (fix)
         steps:
         - name: Checkout repository
           uses: actions/checkout@v7
