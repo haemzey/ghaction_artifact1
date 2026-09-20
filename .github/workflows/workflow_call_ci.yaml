@@ -95,4 +95,16 @@ jobs:
           with:
               path: mysql_cont_test.txt
 
+        - name: flask push image
+          uses: docker/build-push-action@v7
+          with:
+            push: true 
+            tags: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+
+        - name: mysql push image
+          uses: docker/build-push-action@v7
+          with:
+            push: true 
+            tags: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+
         
