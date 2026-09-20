@@ -1,6 +1,23 @@
 name: FLASK MYSQL CI
 on:
   workflow_dispatch:
+    inputs:
+      environments:
+        required: true
+        default: dev
+        type: string
+
+      flask_images:
+        description: FLASK IMAGE
+        required: true
+        type: boolean
+        default: true
+
+      mysql_images:
+        description: MYSQL IMAGE
+        required: true
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -13,6 +30,7 @@ env:
 jobs:
     docker-build:
         runs-on: ubunru-latest
+        if: ${{ inputs.environments == 'dev' && inputs.flask_images == true && inputs.mysql_images == true }}
         steps:
         - name: Checkout repository
           uses: actions/checkout@v7
