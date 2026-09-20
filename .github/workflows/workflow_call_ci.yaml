@@ -39,13 +39,19 @@ jobs:
           uses: actions/download-artifact@v7
           with:
             name: flask-image
-            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}.tar
+
+        - name: unzip and load flask-image
+          run: docker load -i ${{ needs.docker_build.outputs.FLASK_IMAGE }}.tar 
 
         - name: download mysql image artifact
           uses: actions/download-artifact@v7
           with:
             name: mysql-image
-            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}.tar
+
+        - name: unzip and load flask-image
+          run: docker load -i ${{ needs.docker_build.outputs.MYSQL_IMAGE }}.tar 
  
         - name: Set up Docker Compose
           if: ${{ inputs.docker_compose == 'true' }}
@@ -97,16 +103,16 @@ jobs:
           with:
               path: mysql_cont_test.txt
 
-        - name: flask push image
-          uses: docker/build-push-action@v7
+        - name: docker login 
+          uses: docker/login-action@v4
           with:
-            push: true 
-            tags: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN }}
+
+        - name: flask push image
+          run: docker push ${{ needs.docker_build.outputs.FLASK_IMAGE }}
 
         - name: mysql push image
-          uses: docker/build-push-action@v7
-          with:
-            push: true 
-            tags: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+          run: docker push ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
 
         

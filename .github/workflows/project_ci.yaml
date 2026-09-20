@@ -221,17 +221,23 @@ jobs:
             tags: ${{ steps.image_2.outputs.MYSQL_IMAGE }}
             load: true
 
+        - name: zip flask image
+          run: docker tar ${{ steps.image_1.outputs.FLASK_IMAGE }} -o ${{ steps.image_1.outputs.FLASK_IMAGE }}.tar
+
         - name: upload flask artifact
           uses: actions/upload-artifact@v7
           with:
             name: flask-image
-            path: ${{ steps.image_1.outputs.FLASK_IMAGE }}
+            path: ${{ steps.image_1.outputs.FLASK_IMAGE }}.tar
+
+        - name: zip flask image
+          run: docker tar ${{ steps.image_1.outputs.FLASK_IMAGE }} -o ${{ steps.image_1.outputs.MYSQL_IMAGE }}.tar
 
         - name: upload mysql artifact
           uses: actions/upload-artifact@v7
           with:
             name: mysql-image
-            path: ${{ steps.image_2.outputs.MYSQL_IMAGE }}
+            path: ${{ steps.image_2.outputs.MYSQL_IMAGE }}.tar
 
       outputs:
         FLASK_IMAGE: ${{ steps.image_1.outputs.FLASK_IMAGE }}
@@ -251,13 +257,19 @@ jobs:
           uses: actions/download-artifact@v7
           with:
             name: flask-image
-            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}.tar
+
+        - name: unzip and load flask-image
+          run: docker load -i ${{ needs.docker_build.outputs.FLASK_IMAGE }}.tar 
 
         - name: download mysql artifact
           uses: actions/download-artifact@v7
           with:
             name: mysql-image
-            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }} 
+            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}.tar
+            
+        - name: unzip and load mysql-image
+          run: docker load -i ${{ needs.docker_build.outputs.MYSQL_IMAGE }}.tar 
 
         - name: flask image secrets scan
           uses: aquasecurity/trivy-action@v0.36.0
@@ -312,21 +324,25 @@ jobs:
         - name: flask secret artifact
           uses: actions/upload-artifact@v7
           with:
+            name: flask_secrets
             path: flask_secrets.txt
           
         - name: mysql secret artifact
           uses: actions/upload-artifact@v7
           with:
+            name: mysql_secrets
             path: mysql_secrets.txt
 
         - name: flask vuln artifact
           uses: actions/upload-artifact@v7
           with:
+            name: flask_vuln
             path: flask_vuln.txt
 
         - name: mysq vuln artifact
           uses: actions/upload-artifact@v7
           with:
+            name: mysq_vuln
             path: mysq_vuln.txt
 
     deployment:
@@ -345,13 +361,19 @@ jobs:
           uses: actions/download-artifact@v7
           with:
             name: flask-image
-            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}.tar
+
+        - name: unzip and load flask-image
+          run: docker load -i ${{ needs.docker_build.outputs.FLASK_IMAGE }}.tar 
 
         - name: download mysql image artifact
           uses: actions/download-artifact@v7
           with:
             name: mysql-image
-            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }} 
+            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}.tar
+
+        - name: unzip and load mysql-image
+          run: docker load -i ${{ needs.docker_build.outputs.MYSQL_IMAGE }}.tar 
 
         - name: docker network
           run: docker network create --driver bridge mynetwork
@@ -401,30 +423,26 @@ jobs:
         - name: upload flask smoke test result
           uses: actions/upload-artifact@v7
           with:
+            name: flask_smoke_test
             path: flask_smoke_test.txt
 
         - name: upload mysql smoke test result
           uses: actions/upload-artifact@v7
           with:
+            name: mysql_smoke_test
             path: mysql_smoke_test.txt 
 
         - name: upload flask container logs
           uses: actions/upload-artifact@v7
           with:
+            name: flask_faillogs
             path: flask_faillogs.txt
 
         - name: upload mysql container logs
           uses: actions/upload-artifact@v7
           with:
+            name: mysql_faillogs
             path: mysql_faillogs.txt
-
-        - name: docker login
-          uses: docker/login-action@v4
-          with:
-            username: ${{ secrets.DOCKER_USERNAME }}
-            password: ${{ secrets.DOCKER_TOKEN }}
-
-        
 
     production:
       needs:
