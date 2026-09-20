@@ -394,8 +394,17 @@ jobs:
       - name: flask image smoke test
         run: curl --fail --retry 10 http://localhost:5000/health >> flask_smoke_test.txt
 
-      - name: mysql image smoke test
-        run: curl --fail --retry 10 http://localhost:3306/health  >> mysql_smoke_test.txt
+      - name: MySQL smoke test
+        env:
+          MYQSL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+        run: |
+          docker exec mydbsql \
+          mysqladmin ping \
+          -h 127.0.0.1 \
+          -u root \
+          -p"$MYSQL_ROOT_PASSWORD" \
+          --silent \
+          >> mysql_smoke_test.txt
 
       - name: flask container fails
         if: ${{ failure() }}
