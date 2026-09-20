@@ -35,23 +35,23 @@ jobs:
           with:
             fetch-depth: 0
 
-        - name: download flask image artifact
+        - name: download flask artifact
           uses: actions/download-artifact@v7
           with:
             name: flask-image
-            path: ${{ needs.docker_build.outputs.FLASK_IMAGE }}.tar
+            path: flask_image.tar
 
         - name: unzip and load flask-image
-          run: docker load -i ${{ needs.docker_build.outputs.FLASK_IMAGE }}.tar 
+          run: docker load -i flask_image.tar 
 
-        - name: download mysql image artifact
+        - name: download mysql artifact
           uses: actions/download-artifact@v7
           with:
             name: mysql-image
-            path: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}.tar
-
-        - name: unzip and load flask-image
-          run: docker load -i ${{ needs.docker_build.outputs.MYSQL_IMAGE }}.tar 
+            path: mysql_image.tar
+            
+        - name: unzip and load mysql-image
+          run: docker load -i mysql_image.tar
  
         - name: Set up Docker Compose
           if: ${{ inputs.docker_compose == 'true' }}
