@@ -207,7 +207,8 @@ jobs:
         - name: flask image build
           uses: docker/build-push-action@v7
           with:
-            context: ./Dockerfile.flask
+            context: .
+            file: ./Dockerfile.flask
             push: false
             tags: ${{ steps.image_1.outputs.FLASK_IMAGE }}
             load: true
@@ -215,7 +216,8 @@ jobs:
         - name: mysql image build
           uses: docker/build-push-action@v7
           with:
-            context: ./Dockerfile.flask
+            context: .
+            file: ./Dockerfile.database
             push: false
             tags: ${{ steps.image_2.outputs.MYSQL_IMAGE }}
             load: true
