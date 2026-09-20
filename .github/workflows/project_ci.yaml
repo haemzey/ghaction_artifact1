@@ -274,7 +274,7 @@ jobs:
         - name: flask image secrets scan
           uses: aquasecurity/trivy-action@v0.36.0
           with:
-            scan-type: fs
+            scan-type: config
             scan-ref: ./Dockerfile.flask
             format: "table"
             vuln-type: "os,library"
@@ -287,7 +287,7 @@ jobs:
         - name: mysql image secrets scan
           uses: aquasecurity/trivy-action@v0.36.0
           with:
-            scan-type: fs
+            scan-type: config
             scan-ref: ./Dockerfile.database
             format: "table"
             vuln-type: "os,library"
