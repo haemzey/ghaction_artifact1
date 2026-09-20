@@ -1,27 +1,8 @@
 name: DOCKER BUILD 
 on:
   workflow_dispatch:
-    inputs:
-      environments:
-        required: true
-        default: dev
-        type: string
-
-      flask_images:
-        description: FLASK IMAGE
-        required: true
-        type: boolean
-        default: true
-
-      mysql_images:
-        description: MYSQL IMAGE
-        required: true
-        type: boolean
-        default: true
-
 permissions:
   contents: read
-  pull-requests: read
 
 env:
   FLASK_NAME: myflaskserver
@@ -29,8 +10,12 @@ env:
 
 jobs:
     docker-build:
+<<<<<<< HEAD
         runs-on: ubunru-latest
         if: ${{ inputs.environments == 'dev' && inputs.flask_images == true && inputs.mysql_images == true }}
+=======
+        runs-on: ubuntu-latest
+>>>>>>> 665d210 (fix)
         steps:
         - name: Checkout repository
           uses: actions/checkout@v7
