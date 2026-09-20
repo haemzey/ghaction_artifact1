@@ -412,11 +412,12 @@ jobs:
       - name: MySQL smoke test
         env:
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_ROOT_USER: ${{ secrets.MYSQL_ROOT_USER }}
         run: |
           docker exec mydbsql \
           mysqladmin ping \
           -h 127.0.0.1 \
-          -u root \
+          -u"$MYSQL_ROOT_PASSWORD" \
           -p"$MYSQL_ROOT_PASSWORD" \
           --silent
 
