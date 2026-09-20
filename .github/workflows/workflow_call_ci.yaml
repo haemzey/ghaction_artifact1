@@ -20,6 +20,10 @@ on:
 permissions:
     contents: read
 
+env:
+  FLASK_NAME: myflaskserver
+  MYSQL_NAME: mydbsql
+
 jobs:
     production:
         runs-on: ubuntu-latest
@@ -54,14 +58,12 @@ jobs:
           run: docker load -i mysql_image.tar
  
         - name: Set up Docker Compose
-          if: ${{ inputs.docker_compose == 'true' }}
           uses: docker/setup-compose-action@v2
           with:
             version: latest
             cache-binary: true
 
         - name: docker-compose setup
-          if: ${{ inputs.docker_compose == 'true' }}
           uses: hoverkraft-tech/compose-action@b659c744ee9bed25aea2307c017ad849bd104433
           with:
             compose-file: "./docker-compose.yaml"
@@ -70,28 +72,30 @@ jobs:
                 server
 
         - name: Check services healthiness
-          if: ${{ inputs.docker_compose == 'true' }}
           uses: thegabriele97/dockercompose-health-action@main
           with:
             filename: 'docker-compose.test.yml'
             timeout: '60'
             workdir: './'
 
-        - name: running test on flask container
-          if: ${{ inputs.docker_compose == 'true' }}
+        - name: Run Flask container tests
           uses: adambirds/docker-compose-action@v1.5.0
           with:
-            compose-file: "./docker-compose.yml"
+            compose-file: "./docker-compose.yaml"
             test-container: "myflaskserver"
-            test-command: "pip pytest > flask_cont_test.txt"
-        
-        - name: running test on mysql container
-          if: ${{ inputs.docker_compose == 'true' }}
+            test-command: "python -m pytest >> flask_cont_test.txt"
+
+        - name: Run MySQL container health test
           uses: adambirds/docker-compose-action@v1.5.0
           with:
-            compose-file: "./docker-compose.yml"
+            compose-file: "./docker-compose.yaml"
             test-container: "mydbsql"
-            test-command: "npm test > mysql_cont_test.txt"
+            test-command: >
+                mysqladmin ping
+                -h 127.0.0.1
+                -u root
+                -p"$MYSQL_ROOT_PASSWORD"
+                --silent >> mysql_cont_test.txt
 
         - name: upload flask artifact
           uses: actions/upload-artifact@v7
@@ -110,9 +114,9 @@ jobs:
             password: ${{ secrets.DOCKER_TOKEN }}
 
         - name: flask push image
-          run: docker push ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+          run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
 
         - name: mysql push image
-          run: docker push ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+          run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
 
         

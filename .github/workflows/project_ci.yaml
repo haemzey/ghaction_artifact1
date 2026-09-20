@@ -167,10 +167,6 @@ jobs:
     docker_build:
       runs-on: ubuntu-latest
       if: ${{ (inputs.environments == 'dev' || inputs.environments == 'qa' || inputs.environments == 'prod') && (inputs.flask_images == true && inputs.mysql_images == true) }}
-      outputs:
-        flask_image: ${{ steps.image_names.outputs.FLASK_IMAGE }}
-        mysql_image: ${{ steps.image_names.outputs.MYSQL_IMAGE }}
-
       steps:
       - name: Calling inputs
         run: |
@@ -182,22 +178,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate image names
-        id: image_names
-        shell: bash
-        run: |
-          IMAGE_TAG="v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
-
-          FLASK_IMAGE="${{ secrets.DOCKER_USERNAME }}/${FLASK_NAME}:${IMAGE_TAG}"
-          MYSQL_IMAGE="${{ secrets.DOCKER_USERNAME }}/${MYSQL_NAME}:${IMAGE_TAG}"
-
-          echo "IMAGE_TAG=$IMAGE_TAG"
-          echo "FLASK_IMAGE=$FLASK_IMAGE"
-          echo "MYSQL_IMAGE=$MYSQL_IMAGE"
-
-          echo "FLASK_IMAGE=$FLASK_IMAGE" >> "$GITHUB_OUTPUT"
-          echo "MYSQL_IMAGE=$MYSQL_IMAGE" >> "$GITHUB_OUTPUT"
-
       - name: Build Flask image
         uses: docker/build-push-action@v7
         with:
@@ -205,7 +185,7 @@ jobs:
           file: ./Dockerfile.flask
           push: false
           load: true
-          tags: ${{ steps.image_names.outputs.FLASK_IMAGE }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
 
       - name: Build MySQL image
         uses: docker/build-push-action@v7
@@ -214,23 +194,10 @@ jobs:
           file: ./Dockerfile.database
           push: false
           load: true
-          tags: ${{ steps.image_names.outputs.MYSQL_IMAGE }}
-
-      - name: Verify images
-        run: |
-          docker images
-
-          echo "Flask image:"
-          docker image inspect "${{ steps.image_names.outputs.FLASK_IMAGE }}"
-
-          echo "MySQL image:"
-          docker image inspect "${{ steps.image_names.outputs.MYSQL_IMAGE }}"
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
 
       - name: Save Flask image
-        run: |
-          docker save \
-          "${{ steps.image_names.outputs.FLASK_IMAGE }}" \
-          -o flask_image.tar
+        run: docker save "${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" -o flask_image.tar
 
       - name: Upload Flask image
         uses: actions/upload-artifact@v7
@@ -240,9 +207,7 @@ jobs:
 
       - name: Save MySQL image
         run: |
-          docker save \
-          "${{ steps.image_names.outputs.MYSQL_IMAGE }}" \
-          -o mysql_image.tar
+          docker save "${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" -o mysql_image.tar
 
       - name: Upload MySQL image
         uses: actions/upload-artifact@v7
@@ -253,7 +218,7 @@ jobs:
     docker_security_scan:
       needs: docker_build
       runs-on: ubuntu-latest
-      if: ${{ (inputs.environments == 'qa' || inputs.environments == 'prod') && inputs.security_scans == true && needs.docker_build.result == 'success' }}
+      if: ${{ (inputs.environments == 'qa' || inputs.environments == 'prod') && inputs.security_scans == true }}
       steps:
 
         - name: check repo
@@ -310,7 +275,7 @@ jobs:
         - name: flask image vuln scan
           uses: aquasecurity/trivy-action@v0.36.0
           with:
-            image-ref: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+            image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
             format: "table"
             vuln-type: "os,library"
             scanners: "vuln"
@@ -322,7 +287,7 @@ jobs:
         - name: mysql image vuln scan
           uses: aquasecurity/trivy-action@v0.36.0
           with:
-            image-ref: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+            image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
             format: "table"
             vuln-type: "os,library"
             scanners: "vuln"
@@ -360,7 +325,7 @@ jobs:
         - docker_build
         - docker_security_scan
       runs-on: ubuntu-latest
-      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && needs.docker_build.result == 'success' }}
+      if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true }}
       steps:
         - name: calling inputs
           run: |
@@ -390,12 +355,12 @@ jobs:
           run: docker volume create myvolume 
 
         - name: flask container
-          run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+          run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
 
         - run: sleep 10
         
         - name: mysql container 
-          run: docker run -d -p 3306:3306 --network mynetwork -v myvolume:/db/schema --name mydbsql ${{ needs.docker_build.outputs.MYSQL_IMAGE}}
+          run: docker run -d -p 3306:3306 --network mynetwork -v myvolume:/db/schema --name mydbsql ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
 
         - run: sleep 10
           
@@ -458,7 +423,7 @@ jobs:
         - docker_security_scan 
         - deployment
       runs-on: ubuntu-latest
-      if: ${{ inputs.environments == 'prod' && needs.docker_build.result == 'success' }}
+      if: ${{ inputs.environments == 'prod' }}
       steps:
         - name: re-use workflow call
           uses: ./.github/workflows/workflow_call_ci.yaml
