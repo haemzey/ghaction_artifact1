@@ -47,8 +47,8 @@ jobs:
 
       - name: docker pull images
         run: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}
-          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
       - name: download flask artifact
         uses: actions/download-artifact@v7
