@@ -114,9 +114,9 @@ jobs:
             password: ${{ secrets.DOCKER_TOKEN }}
 
         - name: flask push image
-          run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
+          run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}
 
         - name: mysql push image
-          run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
+          run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}
 
         

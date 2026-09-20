@@ -185,7 +185,7 @@ jobs:
           file: ./Dockerfile.flask
           push: false
           load: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}
 
       - name: Build MySQL image
         uses: docker/build-push-action@v7
@@ -194,10 +194,10 @@ jobs:
           file: ./Dockerfile.database
           push: false
           load: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}
 
       - name: Save Flask image
-        run: docker save "${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" -o flask_image.tar
+        run: docker save "${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}" -o flask_image.tar
 
       - name: Upload Flask image
         uses: actions/upload-artifact@v7
@@ -207,7 +207,7 @@ jobs:
 
       - name: Save MySQL image
         run: |
-          docker save "${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" -o mysql_image.tar
+          docker save "${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}" -o mysql_image.tar
 
       - name: Upload MySQL image
         uses: actions/upload-artifact@v7
@@ -275,7 +275,7 @@ jobs:
         - name: flask image vuln scan
           uses: aquasecurity/trivy-action@v0.36.0
           with:
-            image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
+            image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}
             format: "table"
             vuln-type: "os,library"
             scanners: "vuln"
@@ -287,7 +287,7 @@ jobs:
         - name: mysql image vuln scan
           uses: aquasecurity/trivy-action@v0.36.0
           with:
-            image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
+            image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}
             format: "table"
             vuln-type: "os,library"
             scanners: "vuln"
@@ -355,12 +355,12 @@ jobs:
           run: docker volume create myvolume 
 
         - name: flask container
-          run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
+          run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}
 
         - run: sleep 10
         
         - name: mysql container 
-          run: docker run -d -p 3306:3306 --network mynetwork -v myvolume:/db/schema --name mydbsql ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
+          run: docker run -d -p 3306:3306 --network mynetwork -v myvolume:/db/schema --name mydbsql ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}
 
         - run: sleep 10
           
