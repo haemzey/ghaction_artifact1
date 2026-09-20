@@ -385,26 +385,38 @@ jobs:
         run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
       - run: sleep 10
-
-      - name: mysql container
-        run: docker run -d -p 3306:3306 --network mynetwork -v myvolume:/db/schema --name mydbsql ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
-
-      - run: sleep 10
-
       - name: flask image smoke test
         run: curl --fail --retry 10 http://localhost:5000/health >> flask_smoke_test.txt
 
+      - name: MySQL container
+        run: |
+          docker run -d \
+          -p 3306:3306 \
+          --network mynetwork \
+          -v myvolume:/db/schema \
+          --name mydbsql \
+          ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+
+      - name: Wait
+        run: sleep 10
+
+      - name: Debug MySQL container
+        run: |
+          docker ps -a
+          docker inspect mydbsql \
+          --format='Status={{.State.Status}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}'
+          docker logs mydbsql
+
       - name: MySQL smoke test
         env:
-          MYQSL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
         run: |
           docker exec mydbsql \
           mysqladmin ping \
           -h 127.0.0.1 \
           -u root \
           -p"$MYSQL_ROOT_PASSWORD" \
-          --silent \
-          >> mysql_smoke_test.txt
+          --silent
 
       - name: flask container fails
         if: ${{ failure() }}
