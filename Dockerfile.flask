@@ -18,7 +18,7 @@ RUN python -m pip install --upgrade pip \
  
 FROM python:3.12 AS runtime
 
-RUN groupaddd --system -gid 1001 appuser \
+RUN groupadd --system -gid 1001 appuser \
     && useradd --system --uid 1001 --gid appuser appuser
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
