@@ -50,7 +50,7 @@ jobs:
 
         - name: mysql pull image
           run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
-          
+
         - name: Set up Docker Compose
           if: ${{ inputs.docker_compose == 'true' }}
           uses: docker/setup-compose-action@v2
