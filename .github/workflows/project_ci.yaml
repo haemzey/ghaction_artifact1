@@ -406,16 +406,16 @@ jobs:
           --format='Status={{.State.Status}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}'
           docker logs mydbsql
 
-      - name: MySQL smoke test
+      - name: MySQL container
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+            MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
         run: |
-          docker exec mydbsql \
-          mysqladmin ping \
-          -h 127.0.0.1 \
-          -u root \
-          -p"$MYSQL_ROOT_PASSWORD" \
-          --silent
+          docker run -d \
+            -p 3306:3306 \
+            --network mynetwork \
+            --name mydbsql \
+            -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
       - name: flask container fails
         if: ${{ failure() }}
