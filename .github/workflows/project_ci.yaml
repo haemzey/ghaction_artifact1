@@ -222,7 +222,7 @@ jobs:
             load: true
 
         - name: zip flask image
-          run: docker tar ${{ steps.image_1.outputs.FLASK_IMAGE }} -o ${{ steps.image_1.outputs.FLASK_IMAGE }}.tar
+          run: docker save ${{ steps.image_1.outputs.FLASK_IMAGE }} -o ${{ steps.image_1.outputs.FLASK_IMAGE }}.tar
 
         - name: upload flask artifact
           uses: actions/upload-artifact@v7
@@ -231,7 +231,7 @@ jobs:
             path: ${{ steps.image_1.outputs.FLASK_IMAGE }}.tar
 
         - name: zip flask image
-          run: docker tar ${{ steps.image_1.outputs.FLASK_IMAGE }} -o ${{ steps.image_1.outputs.MYSQL_IMAGE }}.tar
+          run: docker save ${{ steps.image_1.outputs.FLASK_IMAGE }} -o ${{ steps.image_1.outputs.MYSQL_IMAGE }}.tar
 
         - name: upload mysql artifact
           uses: actions/upload-artifact@v7
