@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --only-upgrade perl-base \
 
 COPY --from=builder /install /usr/local
 
-COPY --chown=root:root --chmod=0444 appy.py ./
+COPY --chown=root:root --chmod=0444 app.py ./
 
 EXPOSE 5000
 
