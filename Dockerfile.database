@@ -5,4 +5,6 @@ RUN groupadd --system --gid 1001 appuser \
 
 WORKDIR /myapp
 
-RUN --chown appuser:appuser --chmod 0444 /docker-entrypoint-initdb.d/
+COPY --chown=appuser:appuser --chmod=0444 \
+    docker-entrypoint-initdb.d/ \
+    /docker-entrypoint-initdb.d/
