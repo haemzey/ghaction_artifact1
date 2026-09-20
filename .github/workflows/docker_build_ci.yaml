@@ -1,0 +1,60 @@
+name: DOCKER BUILD 
+on:
+  workflow_dispatch:
+    inputs:
+      environments:
+        required: true
+        default: dev
+        type: string
+
+      flask_images:
+        description: FLASK IMAGE
+        required: true
+        type: boolean
+        default: true
+
+      mysql_images:
+        description: MYSQL IMAGE
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  FLASK_NAME: myflaskserver
+  MYSQL_NAME: mydbsql
+
+jobs:
+    docker-build:
+        runs-on: ubunru-latest
+        if: ${{ inputs.environments == 'dev' && inputs.flask_images == true && inputs.mysql_images == true }}
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v7
+          with:
+            fetch-depth: 0
+
+        - name: docker login 
+          uses: docker/login-action@v4
+          with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN}}
+
+        - name: Build Flask image
+          uses: docker/build-push-action@v7
+          with:
+            context: .
+            file: ./Dockerfile.flask
+            push: true
+            tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}
+
+        - name: Build MySQL image
+          uses: docker/build-push-action@v7
+          with:
+            context: .
+            file: ./Dockerfile.database
+            push: true
+            tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}
