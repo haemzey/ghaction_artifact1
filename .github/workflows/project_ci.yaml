@@ -428,12 +428,12 @@ jobs:
         if: ${{ failure() }}
         run: docker logs mydbsql >> mysql_faillogs.txt
 
-      - name: remove containers
+      - name: Remove containers and network
         if: ${{ always() }}
         run: |
-          docker rm -f mysever
-          docker rm -f mydbsql
-          docker network rm mynetwork
+          docker rm -f myflaskserver 2>/dev/null || true
+          docker rm -f mydbsql 2>/dev/null || true
+          docker network rm mynetwork 2>/dev/null || true
 
       - name: upload flask smoke test result
         uses: actions/upload-artifact@v7
