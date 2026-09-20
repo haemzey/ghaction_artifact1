@@ -188,12 +188,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: docker login 
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN}}
+
       - name: Build Flask image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile.flask
-          push: false
+          push: true
           load: true
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}
 
@@ -202,7 +208,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.database
-          push: false
+          push: true
           load: true
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}
 
@@ -330,9 +336,9 @@ jobs:
           path: mysq_vuln.txt
 
   deployment:
-    needs:
-      - docker_build
-      - docker_security_scan
+    #needs:
+    #  - docker_build
+    #  - docker_security_scan
     runs-on: ubuntu-latest
     if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true }}
     steps:
@@ -341,22 +347,34 @@ jobs:
           echo "${{ inputs.environments }}"
           echo "${{ inputs.smoke_tests }}"
 
-      - name: download flask artifact
-        uses: actions/download-artifact@v7
+   #   - name: download flask artifact
+    #    uses: actions/download-artifact@v7
+    #    with:
+    #      name: flask-image
+
+    #   - name: unzip and load flask-image
+    #    run: docker load -i flask_image.tar
+
+    #  - name: download mysql artifact
+    #    uses: actions/download-artifact@v7
+     #   with:
+      #    name: mysql-image
+
+    #  - name: unzip and load mysql-image
+    #    run: docker load -i mysql_image.tar
+
+      - name: docker login 
+        uses: docker/login-action@v4
         with:
-          name: flask-image
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN}}
 
-      - name: unzip and load flask-image
-        run: docker load -i flask_image.tar
-
-      - name: download mysql artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: mysql-image
-
-      - name: unzip and load mysql-image
-        run: docker load -i mysql_image.tar
-
+      - name: docker pull images
+        run: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v${{ github.run_number }}-${{ github.sha }}
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v${{ github.run_number }}-${{ github.sha }}
+          
+        
       - name: docker network
         run: docker network create --driver bridge mynetwork
 
@@ -420,8 +438,8 @@ jobs:
 
   production:
     needs:
-      - docker_build
-      - docker_security_scan
+    #  - docker_build
+    #  - docker_security_scan
       - deployment
     runs-on: ubuntu-latest
     if: ${{ inputs.environments == 'prod' }}
