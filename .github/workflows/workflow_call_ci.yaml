@@ -20,6 +20,10 @@ on:
 permissions:
     contents: read
 
+env: 
+  FLASK_NAME: myflaskserver
+  MYSQL_NAME: mydbsql
+
 jobs:
     production:
         runs-on: ubuntu-latest
@@ -35,24 +39,18 @@ jobs:
           with:
             fetch-depth: 0
 
-        - name: download flask artifact
-          uses: actions/download-artifact@v7
+        - name: docker login
+          uses: docker/login-action@v4
           with:
-            name: flask-image
-            path: flask_image.tar
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN }}
 
-        - name: unzip and load flask-image
-          run: docker load -i flask_image.tar 
+        - name: flask pull image
+          run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
-        - name: download mysql artifact
-          uses: actions/download-artifact@v7
-          with:
-            name: mysql-image
-            path: mysql_image.tar
-            
-        - name: unzip and load mysql-image
-          run: docker load -i mysql_image.tar
- 
+        - name: mysql pull image
+          run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+          
         - name: Set up Docker Compose
           if: ${{ inputs.docker_compose == 'true' }}
           uses: docker/setup-compose-action@v2
@@ -108,11 +106,5 @@ jobs:
           with:
             username: ${{ secrets.DOCKER_USERNAME }}
             password: ${{ secrets.DOCKER_TOKEN }}
-
-        - name: flask push image
-          run: docker push ${{ needs.docker_build.outputs.FLASK_IMAGE }}
-
-        - name: mysql push image
-          run: docker push ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
 
         
