@@ -395,7 +395,7 @@ jobs:
           --network mynetwork \
           -v myvolume:/db/schema \
           --name mydbsql \
-          ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+          ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
       - name: Wait
         run: sleep 10
