@@ -389,11 +389,14 @@ jobs:
         run: curl --fail --retry 10 http://localhost:5000/health >> flask_smoke_test.txt
 
       - name: MySQL container
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
         run: |
           docker run -d \
           -p 3306:3306 \
           --network mynetwork \
           --name mydbsql \
+          -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
           ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
       - name: Wait
