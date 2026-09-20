@@ -374,7 +374,7 @@ jobs:
       - run: sleep 10
 
       - name: flask image smoke test
-        run: curl --fail --retry-10 http://localhost:5000/health >> flask_smoke_test.txt
+        run: curl --fail --retry 10 http://localhost:5000/health >> flask_smoke_test.txt
 
       - name: mysql image smoke test
         env:
