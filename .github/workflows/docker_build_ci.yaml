@@ -1,4 +1,4 @@
-name: FLASK MYSQL CI
+name: DOCKER BUILD 
 on:
   workflow_dispatch:
     inputs:
