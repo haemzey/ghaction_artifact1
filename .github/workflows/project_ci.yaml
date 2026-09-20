@@ -70,7 +70,7 @@ env:
 jobs:
     flask_test:
         runs-on: ubuntu-latest
-        if: ${{ (inputs.environments == 'dev' || inputs.environments == 'qa' || inputs.environments == 'prod') && inputs.app_tests == true }}
+        if: ${{ inputs.environments == 'dev' && inputs.app_tests == true }}
         steps:
             - name: calling inputs
               run: |
@@ -175,9 +175,8 @@ jobs:
                   path: dist/
 
     docker_build:
-      needs: flask_test 
       runs-on: ubuntu-latest
-      if: ${{ inputs.environments == 'dev' && inputs.flask_images == true }}
+      if: ${{ (inputs.environments == 'dev' || inputs.environments == 'qa' || inputs.environments == 'prod') && inputs.flask_images == true }}
       steps:
         - name: calling inputs
           run: |
