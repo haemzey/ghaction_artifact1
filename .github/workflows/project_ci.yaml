@@ -248,6 +248,11 @@ jobs:
       runs-on: ubuntu-latest
       if: ${{ (inputs.environments == 'qa' || inputs.environments == 'prod') && inputs.security_scans == true && needs.docker_build.result == 'success' }}
       steps:
+
+        - name: check repo
+          uses: actions/checkout@v7
+          with:
+            fetch-depth: 0
         - name: calling inputs
           run: |
             echo "${{ inputs.environments }}"
