@@ -10,13 +10,17 @@ permissions:
 
 jobs:
   flask_test:
-    strategy:
-      matrix:
-        PYTHON_VERSION: [3.11, 3.12, 3.13]
-        OS: [ubuntu-latest, windows-latest]
-
-    runs-on: ${{ matrix.OS }}
-    steps:
+      strategy:  
+        matrix:
+          python-version:
+              - "3.11"
+              - "3.12"
+              - "3.13"
+          runs-on:
+              - "ubuntu-latest"
+              - "windows-ubuntu"
+      runs-on: ${{ matrix.runs-on }}
+      steps:
 
       - name: check repo
         uses: actions/checkout@v7
@@ -31,7 +35,7 @@ jobs:
       - name: python setups
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
+          python-version: ${{ matrix.python-version }}
           cache: "pip"
           cache-dependency-path: ./requirements.txt
 
@@ -50,7 +54,7 @@ jobs:
 
           echo "Application executed successfully."
 
-          echo "Matrix Python Version : ${{ matrix.PYTHON_VERSION  }}"
+          echo "Matrix Python Version : ${{ matrix.python-version }}"
           python --version
 
           kill $APP_PID
