@@ -1,24 +1,39 @@
 services:
+
   db:
     image: mysql:8.4
-    build:
-      context: .
+
     container_name: mydbsql
+
     environment:
-      MYSQL_NAME: restuarent-management
-      MYSQL_HOST: root
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: restaurant_management
       MYSQL_USER: admin
-      MYSQL_PORT: 3306
-      MYSQL_PASSWORD: root 
+      MYSQL_PASSWORD: root
+
     networks:
       - mynetwork
+
     ports:
       - "3306:3306"
+
     volumes:
-      - myvolume:/myapp/db
+      - myvolume:/var/lib/mysql
+
     restart: unless-stopped
+
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-u",
+          "root",
+          "-proot"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
