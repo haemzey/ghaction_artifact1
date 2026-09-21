@@ -193,23 +193,19 @@ jobs:
           run: echo "IMAGE_TAG=v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
         - run: echo "tag is; ${{steps.tag.outputs.IMAGE_TAG}}"
           
-        - name: Flask Image
-          id: image_1
-          run: echo "FLASK_IMAGE=${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:${{ steps.tag.outputs.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
-        - run: echo "Flask Image; ${{ steps.image_1.outputs.FLASK_IMAGE }}"
-          
-        - name: MYSQL Image
-          id: image_2
-          run: echo "MYSQL_IMAGE=${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:${{ steps.tag.outputs.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
-        - run: echo "MYSQL Image; ${{ steps.image_2.outputs.MYSQL_IMAGE }}"
+        - name: docker login
+          uses: docker/login-action@v4
+          with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN }}
 
         - name: flask image build
           uses: docker/build-push-action@v7
           with:
             context: .
             file: ./Dockerfile.flask
-            push: false
-            tags: ${{ steps.image_1.outputs.FLASK_IMAGE }}
+            push: true
+            tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:${{steps.tag.outputs.IMAGE_TAG}}
             load: true
 
         - name: mysql image build
@@ -217,12 +213,12 @@ jobs:
           with:
             context: .
             file: ./Dockerfile.database
-            push: false
-            tags: ${{ steps.image_2.outputs.MYSQL_IMAGE }}
+            push: true
+            tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:${{steps.tag.outputs.IMAGE_TAG}}
             load: true
 
         - name: zip flask image
-          run: docker save ${{ steps.image_1.outputs.FLASK_IMAGE }} -o flask_image.tar
+          run: docker save ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:${{steps.tag.outputs.IMAGE_TAG}} -o flask_image.tar
 
         - name: upload flask artifact
           uses: actions/upload-artifact@v7
@@ -231,7 +227,7 @@ jobs:
             path: flask_image.tar
 
         - name: zip mysql image
-          run: docker save ${{ steps.image_2.outputs.MYSQL_IMAGE }} -o mysql_image.tar
+          run: docker save ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:${{steps.tag.outputs.IMAGE_TAG}} -o mysql_image.tar
 
         - name: upload mysql artifact
           uses: actions/upload-artifact@v7
@@ -240,8 +236,7 @@ jobs:
             path: mysql_image.tar
 
       outputs:
-        FLASK_IMAGE: ${{ steps.image_1.outputs.FLASK_IMAGE }}
-        MYSQL_IMAGE: ${{ steps.image_2.outputs.MYSQL_IMAGE }}
+        IMAGE_TAG: ${{steps.tag.outputs.IMAGE_TAG}}
 
     docker_security_scan:
       needs: docker_build
@@ -271,7 +266,9 @@ jobs:
           uses: actions/download-artifact@v7
           with:
             name: mysql-image
-            
+
+        - name: unzip and load flask-image
+          run: docker load -i flask_image.tar
             
         - name: unzip and load mysql-image
           run: docker load -i mysql_image.tar
@@ -305,7 +302,7 @@ jobs:
         - name: flask image vuln scan
           uses: aquasecurity/trivy-action@v0.36.0
           with:
-            image-ref: ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+            image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:${{ needs.docker_build.outputs.IMAGE_TAG }}
             format: "table"
             vuln-type: "os,library"
             scanners: "vuln"
@@ -317,7 +314,7 @@ jobs:
         - name: mysql image vuln scan
           uses: aquasecurity/trivy-action@v0.36.0
           with:
-            image-ref: ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+            image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:${{ needs.docker_build.outputs.IMAGE_TAG }}
             format: "table"
             vuln-type: "os,library"
             scanners: "vuln"
@@ -385,12 +382,12 @@ jobs:
           run: docker volume create myvolume 
 
         - name: flask container
-          run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ needs.docker_build.outputs.FLASK_IMAGE }}
+          run: docker run -d -p 5000:5000 --network mynetwork --name myflaskserver ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:${{ needs.docker_build.outputs.IMAGE_TAG }}
 
         - run: sleep 10
         
         - name: mysql container 
-          run: docker run -d -p 3306:3306 --network mynetwork -v myvolume:/db/schema --name mydbsql ${{ needs.docker_build.outputs.MYSQL_IMAGE }}
+          run: docker run -d -p 3306:3306 --network mynetwork -v myvolume:/db/schema --name mydbsql ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:${{ needs.docker_build.outputs.IMAGE_TAG }}
 
         - run: sleep 10
           
@@ -454,13 +451,11 @@ jobs:
         - deployment
       runs-on: ubuntu-latest
       if: ${{ inputs.environments == 'prod' && inputs.smoke_tests == true && needs.docker_build.result == 'success' }}
-      steps:
-        - name: re-use workflow call
-          uses: ./.github/workflows/workflow_call_ci.yaml
-          with:
-            application_name: flask mysql app
-            docker_compose: true
-            replicas: true
+      uses: ./.github/workflows/workflow_call_ci.yaml
+      with:
+        application_name: flask mysql app
+        docker_compose: true
+        replicas: 5
             
         
       
