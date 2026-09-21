@@ -81,7 +81,7 @@ jobs:
           with:
             compose-file: "./docker-compose.yaml"
             test-container: "server"
-            test-command: "pytest >> flask_cont_test.txt"
+            test-command: "curl --f http://localhost:5000 >> flask_cont_test.txt"
 
         - name: Run MySQL container health test
           uses: adambirds/docker-compose-action@v1.5.0

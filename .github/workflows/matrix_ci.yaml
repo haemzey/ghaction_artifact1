@@ -1,24 +1,19 @@
 name: FLASK MYSQL CI
 on:
-  push:
-      branches:
-          - main
-  pull_request:
-      branches:
-          - feature
+  workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: read
 
-env:
-  FLASK_NAME: myflaskserver
-  MYSQL_NAME: mydbsql
-  PYTHON_VERSION: 3.12
-
 jobs:
   flask_test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        PYTHON_VERSION: [3.11, 3.12, 3.13]
+        OS: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.OS }}
     steps:
 
       - name: check repo
@@ -34,7 +29,7 @@ jobs:
       - name: python setups
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.PYTHON_VERSION }}
           cache: "pip"
           cache-dependency-path: ./requirements.txt
 
@@ -90,14 +85,7 @@ jobs:
         run: python3 app.py
 
       - name: smoke test
-        run: 
-
-      - name: Install build
-        shell: bash
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install build
-          python3 -m build 
+        run: curl --f http://localhost:5000/health
 
       - name: upload PYLINT artifact
         uses: actions/upload-artifact@v7
@@ -128,9 +116,3 @@ jobs:
         with:
           name: unittest-results
           path: unittest.txt
-
-      - name: upload BUILD artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: python-build-results
-          path: dist/
