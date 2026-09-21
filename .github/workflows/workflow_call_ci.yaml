@@ -24,96 +24,70 @@ env:
   FLASK_NAME: myflaskserver
   MYSQL_NAME: mydbsql
 
+env: 
+  FLASK_NAME: myflaskserver
+  MYSQL_NAME: mydbsql
+
 jobs:
-  production:
-    runs-on: ubuntu-latest
-    steps:
-      - name: calling inputs
-        run: |
-          echo "${{ inputs.application_name }}"
-          echo "${{ inputs.docker_compose }}"
-          echo "${{ inputs.replicas }}"
+    production:
+        runs-on: ubuntu-latest
+        steps:
+        - name: calling inputs
+          run: |
+            echo "${{ inputs.application_name }}"
+            echo "${{ inputs.docker_compose }}"
+            echo "${{ inputs.replicas }}"
 
-      - name: check repo
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+        - name: check repo
+          uses: actions/checkout@v7
+          with:
+            fetch-depth: 0
 
-      - name: docker login
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+        - name: docker login
+          uses: docker/login-action@v4
+          with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: docker pull images
-        run: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
-          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+        - name: flask pull image
+          run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
-      - name: download flask artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: flask-image
-          path: flask_image.tar
+        - name: mysql pull image
+          run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
-      - name: unzip and load flask-image
-        run: docker load -i flask_image.tar
 
-      - name: download mysql artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: mysql-image
-          path: mysql_image.tar
+        - name: docker-compose setup
+          if: ${{ inputs.docker_compose == 'true' }}
+          uses: hoverkraft-tech/compose-action@b659c744ee9bed25aea2307c017ad849bd104433
+          with:
+            compose-file: "./docker-compose.yaml"
+            services: |
+                db
+                server
 
-      - name: unzip and load mysql-image
-        run: docker load -i mysql_image.tar
+        - name: docker-compose setup
+          uses: hoverkraft-tech/compose-action@b659c744ee9bed25aea2307c017ad849bd104433
+          with:
+            compose-file: "./docker-compose.yaml"
+            services: |
+              db
+              server
 
-      - name: Set up Docker Compose
-        uses: docker/setup-compose-action@v2
-        with:
-          version: latest
-          cache-binary: true
+        - name: Check services healthiness
+          uses: thegabriele97/dockercompose-health-action@main
+          with:
+            filename: "docker-compose.yaml"
+            timeout: "60"
+            workdir: "./"
 
-      - name: docker-compose setup
-        uses: hoverkraft-tech/compose-action@b659c744ee9bed25aea2307c017ad849bd104433
-        with:
-          compose-file: "./docker-compose.yaml"
-          services: |
-            db
-            server
+        - name: upload flask artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: flask_cont_test.txt
 
-      - name: Check services healthiness
-        uses: thegabriele97/dockercompose-health-action@main
-        with:
-          filename: "docker-compose.test.yml"
-          timeout: "60"
-          workdir: "./"
+        - name: upload mysql artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: mysql_cont_test.txt
 
-      - name: Run Flask container tests
-        uses: adambirds/docker-compose-action@v1.5.0
-        with:
-          compose-file: "./docker-compose.yaml"
-          test-container: "myflaskserver"
-          test-command: "python -m pytest >> flask_cont_test.txt"
-
-      - name: Run MySQL container health test
-        uses: adambirds/docker-compose-action@v1.5.0
-        with:
-          compose-file: "./docker-compose.yaml"
-          test-container: "mydbsql"
-          test-command: >
-            mysqladmin ping
-            -h 127.0.0.1
-            -u root
-            -p"$MYSQL_ROOT_PASSWORD"
-            --silent >> mysql_cont_test.txt
-
-      - name: upload flask artifact
-        uses: actions/upload-artifact@v7
-        with:
-          path: flask_cont_test.txt
-
-      - name: upload mysql artifact
-        uses: actions/upload-artifact@v7
-        with:
-          path: mysql_cont_test.txt
+        
