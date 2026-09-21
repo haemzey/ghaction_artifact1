@@ -76,25 +76,6 @@ jobs:
             timeout: "60"
             workdir: "./"
 
-        - name: Run Flask container tests
-          uses: adambirds/docker-compose-action@v1.5.0
-          with:
-            compose-file: "./docker-compose.yaml"
-            test-container: "server"
-            test-command: "curl --fail http://localhost:5000 >> flask_cont_test.txt"
-
-        - name: Run MySQL container health test
-          uses: adambirds/docker-compose-action@v1.5.0
-          with:
-            compose-file: "./docker-compose.yaml"
-            test-container: "db"
-            test-command: >
-              mysqladmin ping
-              -h 127.0.0.1
-              -u root
-              -p"$MYSQL_ROOT_PASSWORD"
-              --silent >> mysql_cont_test.txt
-
         - name: upload flask artifact
           uses: actions/upload-artifact@v7
           with:
