@@ -122,6 +122,7 @@ jobs:
     needs:
       - deploy
     uses: ./.github/workflows/workflow_call_ci.yaml
+    secrets: inherit
     with:
       application_name: flask mysql app
       docker_compose: true
