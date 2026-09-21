@@ -1,6 +1,8 @@
-name: FLASK MYSQL CI
+name: MATRIX CI
 on:
-  workflow_dispatch:
+  push:
+      branches:
+          - main
 
 permissions:
   contents: read
@@ -81,11 +83,17 @@ jobs:
           | tee unittest.txt
 
       - name: Run Application
-        shell: bash
-        run: python3 app.py
+        run: python app.py &
+          APP_PID=$! >> app_run.txt
+
+      - name: sleep
+        run: sleep 10
 
       - name: smoke test
-        run: curl --f http://localhost:5000/health
+        run: curl --f http://localhost:5000/health >> smoke_test.txt
+
+      - name: kill PID
+        run: kill $APP_PID
 
       - name: upload PYLINT artifact
         uses: actions/upload-artifact@v7
@@ -116,3 +124,15 @@ jobs:
         with:
           name: unittest-results
           path: unittest.txt
+
+      - name: upload uniitest artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-run
+          path: app_run.txt
+
+      - name: upload uniitest artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-test
+          path: smoke_test.txt
