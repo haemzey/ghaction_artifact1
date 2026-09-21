@@ -1,24 +1,28 @@
 name: Reuse Workflow Call
 on:
-    workflow_call:
-        inputs:
-          application_name:
-            description: name of app
-            required: true
-            type: string
+  workflow_call:
+    inputs:
+      application_name:
+        description: name of app
+        required: true
+        type: string
 
-          docker_compose:
-            description: docker-compose running testing
-            required: true
-            type: boolean
-            
-          replicas:
-            description: copyies of workflow
-            required: true
-            type: number
+      docker_compose:
+        description: docker-compose running testing
+        required: true
+        type: boolean
+
+      replicas:
+        description: copyies of workflow
+        required: true
+        type: number
 
 permissions:
-    contents: read
+  contents: read
+
+env:
+  FLASK_NAME: myflaskserver
+  MYSQL_NAME: mydbsql
 
 env: 
   FLASK_NAME: myflaskserver
