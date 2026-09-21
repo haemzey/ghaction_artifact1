@@ -83,24 +83,6 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
             docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
 
-        - name: download flask artifact
-          uses: actions/download-artifact@v7
-          with:
-            name: flask-image
-            path: flask_image.tar
-
-        - name: unzip and load flask-image
-          run: docker load -i flask_image.tar
-
-        - name: download mysql artifact
-          uses: actions/download-artifact@v7
-          with:
-            name: mysql-image
-            path: mysql_image.tar
-
-        - name: unzip and load mysql-image
-          run: docker load -i mysql_image.tar
-
         - name: Set up Docker Compose
           uses: docker/setup-compose-action@v2
           with:
