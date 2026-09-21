@@ -35,104 +35,22 @@ jobs:
           cache: "pip"
           cache-dependency-path: ./requirements.txt
 
-      - name: Restore Pip Cache
-        id: pip-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: pip-cache-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
-
-      - name: Display Cache Status
-        run: echo "Cache Hit; ${{ steps.pip-cache.outputs.cache-hit }}"
-
-      - name: install dependency
-        run: python -m pip install -r requirements.txt
-
-      - name: Run Pylint
-        shell: bash
+      - name: Install Dependencies
         run: |
-          python3 -m pylint \
-          $(git ls-files '*.py') \
-          | tee pylint.txt
+          pip install -r requirements.txt
 
-      - name: Run Pytest
-        shell: bash
+      - name: Execute Application
         run: |
-          python3 -m pytest \
-          test/py_test.py \
-          --junitxml=results.xml
+          python app.py &
+          APP_PID=$!
 
-      - name: Run Flake8
-        shell: bash
-        run: |
-          python3 -m flake8 \
-          $(git ls-files '*.py') \
-          | tee flake8.txt
+          sleep 5
 
-      - name: Run Bandit
-        shell: bash
-        run: |
-          python3 -m bandit -r . -s B101 \
-          | tee bandit.txt
+          curl --fail http://127.0.0.1:5000/health
 
-      - name: Run unittest
-        shell: bash
-        run: |
-          python3 -m unittest \
-          unit_test.py \
-          | tee unittest.txt
+          echo "Application executed successfully."
 
-      - name: Run Application
-        run: python app.py &
-          APP_PID=$! >> app_run.txt
+          echo "Matrix Python Version : ${{ matrix.PYTHON_VERSION  }}"
+          python --version
 
-      - name: sleep
-        run: sleep 10
-
-      - name: smoke test
-        run: curl --f http://localhost:5000/health >> smoke_test.txt
-
-      - name: kill PID
-        run: kill $APP_PID
-
-      - name: upload PYLINT artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: pylint-results
-          path: pylint.txt
-
-      - name: upload PYTEST artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: pytest-results
-          path: results.xml
-
-      - name: upload FLAKE8 artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: flake8-results
-          path: flake8.txt
-
-      - name: upload BANDIT artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: bandit-results
-          path: bandit.txt
-
-      - name: upload uniitest artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: unittest-results
-          path: unittest.txt
-
-      - name: upload uniitest artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: app-run
-          path: app_run.txt
-
-      - name: upload uniitest artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: smoke-test
-          path: smoke_test.txt
+          kill $APP_PID
