@@ -67,44 +67,88 @@ jobs:
                 db
                 server
 
-        - name: Check services healthiness
-          if: ${{ inputs.docker_compose == 'true' }}
-          uses: thegabriele97/dockercompose-health-action@main
+        - name: check repo
+          uses: actions/checkout@v7
           with:
-            filename: 'docker-compose.test.yml'
-            timeout: '60'
-            workdir: './'
+            fetch-depth: 0
 
-        - name: running test on flask container
-          if: ${{ inputs.docker_compose == 'true' }}
-          uses: adambirds/docker-compose-action@v1.5.0
-          with:
-            compose-file: "./docker-compose.yml"
-            test-container: "myflaskserver"
-            test-command: "pip pytest > flask_cont_test.txt"
-        
-        - name: running test on mysql container
-          if: ${{ inputs.docker_compose == 'true' }}
-          uses: adambirds/docker-compose-action@v1.5.0
-          with:
-            compose-file: "./docker-compose.yml"
-            test-container: "mydbsql"
-            test-command: "npm test > mysql_cont_test.txt"
-
-        - name: upload flask artifact
-          uses: actions/upload-artifact@v7
-          with:
-              path: flask_cont_test.txt
-
-        - name: upload mysql artifact
-          uses: actions/upload-artifact@v7
-          with:
-              path: mysql_cont_test.txt
-
-        - name: docker login 
+        - name: docker login
           uses: docker/login-action@v4
           with:
             username: ${{ secrets.DOCKER_USERNAME }}
             password: ${{ secrets.DOCKER_TOKEN }}
+
+        - name: docker pull images
+          run: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.FLASK_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.MYSQL_NAME }}:v3-d7f620ce62a010cb4bc249439c69642d73d42e5e
+
+        - name: download flask artifact
+          uses: actions/download-artifact@v7
+          with:
+            name: flask-image
+            path: flask_image.tar
+
+        - name: unzip and load flask-image
+          run: docker load -i flask_image.tar
+
+        - name: download mysql artifact
+          uses: actions/download-artifact@v7
+          with:
+            name: mysql-image
+            path: mysql_image.tar
+
+        - name: unzip and load mysql-image
+          run: docker load -i mysql_image.tar
+
+        - name: Set up Docker Compose
+          uses: docker/setup-compose-action@v2
+          with:
+            version: latest
+            cache-binary: true
+
+        - name: docker-compose setup
+          uses: hoverkraft-tech/compose-action@b659c744ee9bed25aea2307c017ad849bd104433
+          with:
+            compose-file: "./docker-compose.yaml"
+            services: |
+              db
+              server
+
+        - name: Check services healthiness
+          uses: thegabriele97/dockercompose-health-action@main
+          with:
+            filename: "docker-compose.test.yml"
+            timeout: "60"
+            workdir: "./"
+
+        - name: Run Flask container tests
+          uses: adambirds/docker-compose-action@v1.5.0
+          with:
+            compose-file: "./docker-compose.yaml"
+            test-container: "myflaskserver"
+            test-command: "python -m pytest >> flask_cont_test.txt"
+
+        - name: Run MySQL container health test
+          uses: adambirds/docker-compose-action@v1.5.0
+          with:
+            compose-file: "./docker-compose.yaml"
+            test-container: "mydbsql"
+            test-command: >
+              mysqladmin ping
+              -h 127.0.0.1
+              -u root
+              -p"$MYSQL_ROOT_PASSWORD"
+              --silent >> mysql_cont_test.txt
+
+        - name: upload flask artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: flask_cont_test.txt
+
+        - name: upload mysql artifact
+          uses: actions/upload-artifact@v7
+          with:
+            path: mysql_cont_test.txt
 
         
