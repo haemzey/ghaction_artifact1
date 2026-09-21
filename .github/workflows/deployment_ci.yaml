@@ -125,4 +125,4 @@ jobs:
     with:
       application_name: flask mysql app
       docker_compose: true
-      replicas: true
+      replicas: 5
