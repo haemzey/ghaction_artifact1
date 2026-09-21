@@ -459,6 +459,7 @@ jobs:
     if: ${{ inputs.environments == 'prod' }}
 
     uses: ./.github/workflows/workflow_call_ci.yaml
+    secrets: inherit
 
     with:
       application_name: flask mysql app
